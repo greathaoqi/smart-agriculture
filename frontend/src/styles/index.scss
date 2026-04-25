@@ -1,0 +1,129 @@
+// 全局样式
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+// 主色调
+:root {
+  --primary-color: #409eff;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+  --bg-color: #f5f7fa;
+  --text-color: #303133;
+  --text-secondary: #606266;
+  --border-color: #dcdfe6;
+}
+
+// 卡片样式
+.page-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+// 统计卡片
+.stat-card {
+  background: linear-gradient(135deg, var(--primary-color), #66b1ff);
+  border-radius: 12px;
+  padding: 24px;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(64, 158, 255, 0.4);
+  }
+
+  &.success {
+    background: linear-gradient(135deg, #67c23a, #95d475);
+  }
+
+  &.warning {
+    background: linear-gradient(135deg, #e6a23c, #f0c78a);
+  }
+
+  &.danger {
+    background: linear-gradient(135deg, #f56c6c, #fab6b6);
+  }
+
+  &.info {
+    background: linear-gradient(135deg, #909399, #c0c4cc);
+  }
+
+  .stat-icon {
+    font-size: 48px;
+    opacity: 0.8;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    margin: 12px 0 8px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+}
+
+// 表格样式优化
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+
+  th {
+    background: #f5f7fa !important;
+    font-weight: 600;
+  }
+}
+
+// 搜索栏
+.search-bar {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+// 响应式布局
+@media (max-width: 768px) {
+  .stat-card {
+    padding: 16px;
+
+    .stat-icon {
+      font-size: 36px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+    }
+  }
+}
