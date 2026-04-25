@@ -1,4 +1,4 @@
-const { Farm, Plot, Device, DeviceData, PlantingPlan, Order, Task, sequelize } = require('../models');
+const { Farm, Plot, Device, DeviceData, PlantingPlan, Order, Task, Crop, Warehouse, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // 获取仪表盘统计数据
@@ -12,7 +12,9 @@ exports.getStats = async (req, res) => {
       onlineDeviceCount,
       totalYield,
       totalSales,
-      pendingTasks
+      pendingTasks,
+      cropCount,
+      warehouseCount
     ] = await Promise.all([
       Farm.count({ where: { status: 1 } }),
       Plot.count(),
@@ -20,7 +22,9 @@ exports.getStats = async (req, res) => {
       Device.count({ where: { status: 1 } }),
       PlantingPlan.sum('planned_yield', { where: { status: 2 } }) || 0,
       Order.sum('total_amount', { where: { status: 3 } }) || 0,
-      Task.count({ where: { status: { [Op.in]: [0, 1] } } })
+      Task.count({ where: { status: { [Op.in]: [0, 1] } } }),
+      Crop.count(),
+      Warehouse.count()
     ]);
 
     res.json({
@@ -31,7 +35,9 @@ exports.getStats = async (req, res) => {
         onlineDeviceCount,
         totalYield,
         totalSales,
-        pendingTasks
+        pendingTasks,
+        cropCount,
+        warehouseCount
       }
     });
   } catch (error) {

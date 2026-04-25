@@ -1,7 +1,7 @@
 {
   "name": "smart-agriculture-backend",
   "version": "1.0.0",
-  "description": "智慧农业管理平台后端",
+  "description": "云上丽水农业乡村后端",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",

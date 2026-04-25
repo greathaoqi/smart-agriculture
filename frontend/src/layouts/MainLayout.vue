@@ -4,7 +4,7 @@
     <aside class="sidebar" :class="{ collapsed: isCollapsed }">
       <div class="logo">
         <el-icon class="logo-icon"><Sunrise /></el-icon>
-        <span v-show="!isCollapsed" class="logo-text">智慧农业</span>
+        <span v-show="!isCollapsed" class="logo-text">云上丽水</span>
       </div>
 
       <el-menu

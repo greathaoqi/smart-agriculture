@@ -5,8 +5,8 @@
         <div class="logo">
           <el-icon class="logo-icon"><Sunrise /></el-icon>
         </div>
-        <h1>智慧农业管理平台</h1>
-        <p>Smart Agriculture Management System</p>
+        <h1>云上丽水农业乡村</h1>
+        <p>Yunshang Lishui Agriculture</p>
       </div>
 
       <el-form

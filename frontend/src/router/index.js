@@ -22,6 +22,12 @@ const routes = [
         meta: { title: '首页', icon: 'HomeFilled' }
       },
       {
+        path: 'big-screen',
+        name: 'BigScreen',
+        component: () => import('@/views/BigScreen.vue'),
+        meta: { title: '大屏展示', icon: 'DataLine' }
+      },
+      {
         path: 'farms',
         name: 'Farms',
         component: () => import('@/views/farm/Index.vue'),
@@ -103,7 +109,7 @@ router.beforeEach((to, from, next) => {
   NProgress.start()
 
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - 智慧农业管理平台` : '智慧农业管理平台'
+  document.title = to.meta.title ? `${to.meta.title} - 云上丽水农业乡村` : '云上丽水农业乡村'
 
   const userStore = useUserStore()
   const token = userStore.token || localStorage.getItem('token')
