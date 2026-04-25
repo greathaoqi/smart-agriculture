@@ -32,15 +32,19 @@ const Plot = require('./Plot')(sequelize);
 const Crop = require('./Crop')(sequelize);
 const Device = require('./Device')(sequelize);
 const DeviceData = require('./DeviceData')(sequelize);
+const DeviceType = require('./DeviceType')(sequelize);
 const PlantingPlan = require('./PlantingPlan')(sequelize);
 const PlantingRecord = require('./PlantingRecord')(sequelize);
 const Harvest = require('./Harvest')(sequelize);
+const Greenhouse = require('./Greenhouse')(sequelize);
 const Warehouse = require('./Warehouse')(sequelize);
 const Inventory = require('./Inventory')(sequelize);
 const InventoryLog = require('./InventoryLog')(sequelize);
 const Customer = require('./Customer')(sequelize);
 const Order = require('./Order')(sequelize);
 const Task = require('./Task')(sequelize);
+const AlertRule = require('./AlertRule')(sequelize);
+const AlertMessage = require('./AlertMessage')(sequelize);
 const OperationLog = require('./OperationLog')(sequelize);
 
 // 设置关联关系
@@ -95,6 +99,26 @@ Order.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
 User.hasMany(OperationLog, { foreignKey: 'user_id', as: 'logs' });
 OperationLog.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// 设备类型-设备
+DeviceType.hasMany(Device, { foreignKey: 'device_type_id', as: 'devices' });
+Device.belongsTo(DeviceType, { foreignKey: 'device_type_id', as: 'deviceType' });
+
+// 农场-温棚
+Farm.hasMany(Greenhouse, { foreignKey: 'farm_id', as: 'greenhouses' });
+Greenhouse.belongsTo(Farm, { foreignKey: 'farm_id', as: 'farm' });
+
+// 温棚-设备
+Greenhouse.hasMany(Device, { foreignKey: 'greenhouse_id', as: 'devices' });
+Device.belongsTo(Greenhouse, { foreignKey: 'greenhouse_id', as: 'greenhouse' });
+
+// 预警规则-预警消息
+AlertRule.hasMany(AlertMessage, { foreignKey: 'rule_id', as: 'messages' });
+AlertMessage.belongsTo(AlertRule, { foreignKey: 'rule_id', as: 'rule' });
+
+// 设备-预警消息
+Device.hasMany(AlertMessage, { foreignKey: 'device_id', as: 'alertMessages' });
+AlertMessage.belongsTo(Device, { foreignKey: 'device_id', as: 'device' });
+
 module.exports = {
   sequelize,
   User,
@@ -104,14 +128,18 @@ module.exports = {
   Crop,
   Device,
   DeviceData,
+  DeviceType,
   PlantingPlan,
   PlantingRecord,
   Harvest,
+  Greenhouse,
   Warehouse,
   Inventory,
   InventoryLog,
   Customer,
   Order,
   Task,
+  AlertRule,
+  AlertMessage,
   OperationLog
 };

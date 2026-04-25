@@ -41,18 +41,15 @@
 
       <!-- 中央区域 -->
       <div class="bs-center">
-        <!-- 中央统计数字 -->
-        <div class="center-stats">
-          <div class="center-stat-item" v-for="s in centerStats" :key="s.key">
-            <div class="cs-value">{{ s.display }}</div>
-            <div class="cs-label">{{ s.label }}</div>
+        <!-- 地图区域 -->
+        <div class="bs-panel-box flex1 map-box">
+          <div class="panel-title">农场分布地图</div>
+          <div ref="mapContainer" class="map-container"></div>
+          <div class="map-legend">
+            <span class="legend-item"><i class="legend-dot online"></i>在线</span>
+            <span class="legend-item"><i class="legend-dot offline"></i>离线</span>
+            <span class="legend-item"><i class="legend-dot fault"></i>故障</span>
           </div>
-        </div>
-
-        <!-- 作物分布 -->
-        <div class="bs-panel-box flex1">
-          <div class="panel-title">作物种植分布</div>
-          <div ref="cropChartRef" class="chart-area"></div>
         </div>
 
         <!-- 告警滚动 -->
@@ -108,9 +105,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import dayjs from 'dayjs'
 import {
   getStats,
@@ -120,6 +119,8 @@ import {
   getRecentAlerts,
   getPendingTasks
 } from '@/api/dashboard'
+import { getDeviceList } from '@/api/device'
+import { getFarmList } from '@/api/farm'
 
 const router = useRouter()
 
@@ -135,13 +136,13 @@ const updateClock = () => {
 // Chart refs
 const yieldChartRef = ref(null)
 const deviceChartRef = ref(null)
-const cropChartRef = ref(null)
 const salesChartRef = ref(null)
+const mapContainer = ref(null)
 
 let yieldChart = null
 let deviceChart = null
-let cropChart = null
 let salesChart = null
+let map = null
 
 // Data
 const statCards = ref([
@@ -149,12 +150,6 @@ const statCards = ref([
   { key: 'device', label: '在线设备', display: '-', color: '#5dade2' },
   { key: 'yield', label: '总产量(kg)', display: '-', color: '#f39c12' },
   { key: 'sales', label: '销售额(元)', display: '-', color: '#e74c3c' }
-])
-
-const centerStats = ref([
-  { key: 'plot', label: '种植地块', display: '-' },
-  { key: 'crop', label: '作物品种', display: '-' },
-  { key: 'warehouse', label: '仓库数量', display: '-' }
 ])
 
 const alerts = ref([])
@@ -172,6 +167,89 @@ const darkAxis = {
   axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
   axisLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
   splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }
+}
+
+const createMarkerIcon = (status) => {
+  const colors = { 1: '#36d7b7', 0: '#7f8c8d', 2: '#e74c3c' }
+  const color = colors[status] || '#7f8c8d'
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="width:12px;height:12px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${color};"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  })
+}
+
+const initMap = async () => {
+  if (!mapContainer.value) return
+
+  // Default center: Lishui, Zhejiang
+  map = L.map(mapContainer.value, {
+    center: [28.46, 119.92],
+    zoom: 10,
+    zoomControl: false,
+    attributionControl: false
+  })
+
+  // Dark style tile layer (CartoDB dark matter)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map)
+
+  L.control.zoom({ position: 'bottomright' }).addTo(map)
+
+  // Load farms and devices to add markers
+  try {
+    const [farmRes, deviceRes] = await Promise.all([
+      getFarmList({ pageSize: 100 }),
+      getDeviceList({ pageSize: 200 })
+    ])
+
+    const farms = farmRes.data || []
+    const devices = deviceRes.data || []
+
+    // Add farm markers
+    farms.forEach(f => {
+      if (f.longitude && f.latitude) {
+        const lat = parseFloat(f.latitude)
+        const lng = parseFloat(f.longitude)
+        if (!isNaN(lat) && !isNaN(lng)) {
+          L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="background:rgba(54,215,183,0.9);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:1px solid rgba(54,215,183,0.5);">${f.name}</div>`,
+              iconSize: [80, 24],
+              iconAnchor: [40, 12]
+            })
+          }).addTo(map).bindPopup(`<b>${f.name}</b><br>地址: ${f.address || '-'}<br>面积: ${f.area || '-'}亩`)
+        }
+      }
+    })
+
+    // Add device markers
+    devices.forEach(d => {
+      if (d.longitude && d.latitude) {
+        const lat = parseFloat(d.latitude)
+        const lng = parseFloat(d.longitude)
+        if (!isNaN(lat) && !isNaN(lng)) {
+          L.marker([lat, lng], { icon: createMarkerIcon(d.status) })
+            .addTo(map)
+            .bindPopup(`<b>${d.name}</b><br>编码: ${d.code || '-'}<br>状态: ${d.status === 1 ? '在线' : d.status === 2 ? '故障' : '离线'}<br>位置: ${d.location || '-'}`)
+        }
+      }
+    })
+
+    // If we have markers, fit bounds
+    if (farms.length > 0 && farms.some(f => f.longitude)) {
+      const validFarms = farms.filter(f => f.longitude)
+      if (validFarms.length > 0) {
+        const bounds = L.latLngBounds(validFarms.map(f => [parseFloat(f.latitude), parseFloat(f.longitude)]))
+        map.fitBounds(bounds, { padding: [40, 40] })
+      }
+    }
+  } catch (e) {
+    console.error('地图数据加载失败:', e)
+  }
 }
 
 const initYieldChart = (data) => {
@@ -219,30 +297,6 @@ const initDeviceChart = (data) => {
   })
 }
 
-const initCropChart = (data) => {
-  if (!cropChartRef.value) return
-  cropChart = echarts.init(cropChartRef.value)
-  const sorted = [...data].sort((a, b) => (a.total_area || 0) - (b.total_area || 0))
-  cropChart.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.7)', borderColor: '#333' },
-    grid: { left: '3%', right: '10%', top: '5%', bottom: '5%', containLabel: true },
-    xAxis: { type: 'value', ...darkAxis },
-    yAxis: { type: 'category', data: sorted.map(d => d.crop_name), ...darkAxis },
-    series: [{
-      type: 'bar',
-      data: sorted.map(d => d.total_area || 0),
-      barWidth: '50%',
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: 'rgba(93,173,226,0.3)' },
-          { offset: 1, color: '#5dade2' }
-        ]),
-        borderRadius: [0, 4, 4, 0]
-      }
-    }]
-  })
-}
-
 const initSalesChart = (yieldData) => {
   if (!salesChartRef.value) return
   salesChart = echarts.init(salesChartRef.value)
@@ -286,19 +340,13 @@ const loadData = async () => {
     statCards.value[2].display = formatNumber(s.totalYield)
     statCards.value[3].display = formatNumber(s.totalSales)
 
-    centerStats.value[0].display = s.plotCount || '-'
-    centerStats.value[1].display = s.cropCount || '-'
-    centerStats.value[2].display = s.warehouseCount || '-'
-
     initYieldChart(yieldData.data || [])
     initDeviceChart(deviceData.data || [])
-    initCropChart(cropData.data || [])
     initSalesChart(yieldData.data || [])
 
     alerts.value = alertData.data || []
     tasks.value = taskData.data || []
 
-    // Generate farm rank from crop data
     const farms = cropData.data || []
     const maxArea = Math.max(...farms.map(f => f.total_area || 0), 1)
     farmRank.value = farms.map(f => ({
@@ -314,18 +362,20 @@ const loadData = async () => {
 const handleResize = () => {
   yieldChart?.resize()
   deviceChart?.resize()
-  cropChart?.resize()
   salesChart?.resize()
+  map?.invalidateSize()
 }
 
 const handleKeydown = (e) => {
   if (e.key === 'Escape') goBack()
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateClock()
   timer = setInterval(updateClock, 1000)
+  await nextTick()
   loadData()
+  initMap()
   window.addEventListener('resize', handleResize)
   window.addEventListener('keydown', handleKeydown)
 })
@@ -336,8 +386,8 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   yieldChart?.dispose()
   deviceChart?.dispose()
-  cropChart?.dispose()
   salesChart?.dispose()
+  map?.remove()
 })
 </script>
 
@@ -486,38 +536,45 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
-// 中央统计
-.center-stats {
-  display: flex;
-  gap: 12px;
-}
-
-.center-stat-item {
-  flex: 1;
-  background: rgba(13,33,55,0.8);
-  border: 1px solid rgba(54,215,183,0.15);
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-}
-
-.cs-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #5dade2;
-  font-family: 'DIN', 'Courier New', monospace;
-}
-
-.cs-label {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  margin-top: 4px;
-}
-
 // 图表区域
 .chart-area {
   flex: 1;
   min-height: 0;
+}
+
+// 地图区域
+.map-box {
+  position: relative;
+}
+.map-container {
+  flex: 1;
+  min-height: 300px;
+  border-radius: 4px;
+}
+.map-legend {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: flex;
+  gap: 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255,255,255,0.7);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  &.online { background: #36d7b7; }
+  &.offline { background: #7f8c8d; }
+  &.fault { background: #e74c3c; }
 }
 
 // 告警滚动

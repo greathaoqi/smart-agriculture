@@ -28,6 +28,18 @@ const routes = [
         meta: { title: '大屏展示', icon: 'DataLine' }
       },
       {
+        path: 'weather',
+        name: 'Weather',
+        component: () => import('@/views/weather/Index.vue'),
+        meta: { title: '气象站监控', icon: 'Cloudy' }
+      },
+      {
+        path: 'greenhouse',
+        name: 'Greenhouse',
+        component: () => import('@/views/greenhouse/Index.vue'),
+        meta: { title: '温棚监控', icon: 'House' }
+      },
+      {
         path: 'farms',
         name: 'Farms',
         component: () => import('@/views/farm/Index.vue'),
@@ -46,6 +58,12 @@ const routes = [
         meta: { title: '设备管理', icon: 'Monitor' }
       },
       {
+        path: 'device-types',
+        name: 'DeviceTypes',
+        component: () => import('@/views/deviceType/Index.vue'),
+        meta: { title: '设备类型', icon: 'SetUp' }
+      },
+      {
         path: 'planting',
         name: 'Planting',
         component: () => import('@/views/planting/Index.vue'),
@@ -62,6 +80,12 @@ const routes = [
         name: 'Sales',
         component: () => import('@/views/sales/Index.vue'),
         meta: { title: '销售管理', icon: 'ShoppingCart' }
+      },
+      {
+        path: 'alerts',
+        name: 'Alerts',
+        component: () => import('@/views/alert/Index.vue'),
+        meta: { title: '预警消息', icon: 'Bell' }
       },
       {
         path: 'system',
