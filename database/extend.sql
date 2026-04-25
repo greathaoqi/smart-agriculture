@@ -2,8 +2,13 @@
 -- 执行此脚本前请确保已有基础表结构
 
 -- 1. 设备表扩展字段
-ALTER TABLE devices ADD COLUMN IF NOT EXISTS device_type_id INT COMMENT '设备类型ID';
-ALTER TABLE devices ADD COLUMN IF NOT EXISTS greenhouse_id INT COMMENT '温棚ID';
+SET @exist1 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'devices' AND COLUMN_NAME = 'device_type_id');
+SET @sql1 = IF(@exist1 = 0, 'ALTER TABLE devices ADD COLUMN device_type_id INT COMMENT ''设备类型ID''', 'SELECT 1');
+PREPARE stmt1 FROM @sql1; EXECUTE stmt1; DEALLOCATE PREPARE stmt1;
+
+SET @exist2 = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'devices' AND COLUMN_NAME = 'greenhouse_id');
+SET @sql2 = IF(@exist2 = 0, 'ALTER TABLE devices ADD COLUMN greenhouse_id INT COMMENT ''温棚ID''', 'SELECT 1');
+PREPARE stmt2 FROM @sql2; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;
 
 -- 2. 设备类型表（物模型）
 CREATE TABLE IF NOT EXISTS device_types (
