@@ -207,7 +207,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getMessages, markRead, handle: handleApi, getMessageStats, getRules, createRule, updateRule, deleteRule } from '@/api/alert'
+import { getMessages, markRead, handle as handleApi, getMessageStats, getRules, createRule, updateRule, deleteRule as deleteRuleApi } from '@/api/alert'
 import dayjs from 'dayjs'
 
 const activeTab = ref('messages')
@@ -298,7 +298,7 @@ const submitRule = async () => {
 
 const deleteRuleAction = async (row) => {
   await ElMessageBox.confirm('确定删除该预警规则吗？', '提示', { type: 'warning' })
-  await deleteRule(row.id)
+  await deleteRuleApi(row.id)
   ElMessage.success('删除成功')
   loadRules()
 }
