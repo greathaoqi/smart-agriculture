@@ -174,9 +174,9 @@ const createMarkerIcon = (status) => {
   const color = colors[status] || '#7f8c8d'
   return L.divIcon({
     className: 'custom-marker',
-    html: `<div style="width:12px;height:12px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${color};"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px ${color},0 0 20px ${color}40;"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
   })
 }
 
@@ -191,9 +191,10 @@ const initMap = async () => {
     attributionControl: false
   })
 
-  // Dark style tile layer (CartoDB dark matter)
+  // Dark style tile layer (CartoDB dark matter) with custom filter
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
+    maxZoom: 19,
+    className: 'dark-tiles'
   }).addTo(map)
 
   L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -217,11 +218,11 @@ const initMap = async () => {
           L.marker([lat, lng], {
             icon: L.divIcon({
               className: 'custom-marker',
-              html: `<div style="background:rgba(54,215,183,0.9);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:1px solid rgba(54,215,183,0.5);">${f.name}</div>`,
+              html: `<div style="background:linear-gradient(135deg,rgba(54,215,183,0.95),rgba(46,204,113,0.9));color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-family:Microsoft YaHei,sans-serif;white-space:nowrap;box-shadow:0 0 12px rgba(54,215,183,0.5),0 2px 6px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);letter-spacing:1px;">${f.name}</div>`,
               iconSize: [80, 24],
               iconAnchor: [40, 12]
             })
-          }).addTo(map).bindPopup(`<b>${f.name}</b><br>地址: ${f.address || '-'}<br>面积: ${f.area || '-'}亩`)
+          }).addTo(map).bindPopup(`<div style="font-family:Microsoft YaHei,sans-serif;padding:4px 8px;color:#fff;background:rgba(10,22,40,0.9);border-radius:4px;"><b style="color:#36d7b7;">${f.name}</b><br style="margin:4px 0;"><span style="color:rgba(255,255,255,0.7);">地址: ${f.address || '-'}</span><br><span style="color:rgba(255,255,255,0.7);">面积: ${f.area || '-'}亩</span></div>`, { className: 'dark-popup' })
         }
       }
     })
@@ -234,7 +235,7 @@ const initMap = async () => {
         if (!isNaN(lat) && !isNaN(lng)) {
           L.marker([lat, lng], { icon: createMarkerIcon(d.status) })
             .addTo(map)
-            .bindPopup(`<b>${d.name}</b><br>编码: ${d.code || '-'}<br>状态: ${d.status === 1 ? '在线' : d.status === 2 ? '故障' : '离线'}<br>位置: ${d.location || '-'}`)
+            .bindPopup(`<div style="font-family:Microsoft YaHei,sans-serif;padding:4px 8px;color:#fff;background:rgba(10,22,40,0.9);border-radius:4px;min-width:120px;"><b style="color:#36d7b7;">${d.name}</b><br style="margin:4px 0;"><span style="color:rgba(255,255,255,0.7);">编码: ${d.code || '-'}</span><br><span style="color:rgba(255,255,255,0.7);">状态: <span style="color:${d.status === 1 ? '#36d7b7' : d.status === 2 ? '#e74c3c' : '#7f8c8d'};">${d.status === 1 ? '在线' : d.status === 2 ? '故障' : '离线'}</span></span><br><span style="color:rgba(255,255,255,0.7);">位置: ${d.location || '-'}</span></div>`, { className: 'dark-popup' })
         }
       }
     })
@@ -550,6 +551,12 @@ onUnmounted(() => {
   flex: 1;
   min-height: 300px;
   border-radius: 4px;
+  background: rgba(10,22,40,0.5);
+  border: 1px solid rgba(54,215,183,0.1);
+  overflow: hidden;
+}
+:deep(.dark-tiles) {
+  filter: brightness(0.85) saturate(0.9);
 }
 .map-legend {
   position: absolute;
@@ -561,6 +568,7 @@ onUnmounted(() => {
   font-size: 11px;
   display: flex;
   gap: 12px;
+  border: 1px solid rgba(54,215,183,0.2);
 }
 .legend-item {
   display: flex;
@@ -575,6 +583,41 @@ onUnmounted(() => {
   &.online { background: #36d7b7; }
   &.offline { background: #7f8c8d; }
   &.fault { background: #e74c3c; }
+}
+
+// Leaflet 深色弹窗样式
+:deep(.dark-popup) {
+  .leaflet-popup-content-wrapper {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+  .leaflet-popup-content {
+    margin: 0;
+    min-width: 0;
+  }
+  .leaflet-popup-tip {
+    background: rgba(10,22,40,0.9);
+    box-shadow: none;
+  }
+}
+:deep(.leaflet-popup-close-button) {
+  display: none;
+}
+:deep(.leaflet-control-zoom) {
+  a {
+    background: rgba(10,22,40,0.8) !important;
+    color: rgba(255,255,255,0.7) !important;
+    border: 1px solid rgba(54,215,183,0.2) !important;
+    font-family: Microsoft YaHei, sans-serif;
+    &:hover {
+      background: rgba(54,215,183,0.2) !important;
+    }
+  }
+}
+:deep(.leaflet-container) {
+  font-family: Microsoft YaHei, sans-serif;
+  background: #0a1628;
 }
 
 // 告警滚动
