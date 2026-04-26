@@ -46,6 +46,7 @@ const Task = require('./Task')(sequelize);
 const AlertRule = require('./AlertRule')(sequelize);
 const AlertMessage = require('./AlertMessage')(sequelize);
 const OperationLog = require('./OperationLog')(sequelize);
+const SystemConfig = require('./SystemConfig')(sequelize);
 
 // 设置关联关系
 
@@ -141,5 +142,6 @@ module.exports = {
   Task,
   AlertRule,
   AlertMessage,
-  OperationLog
+  OperationLog,
+  SystemConfig
 };

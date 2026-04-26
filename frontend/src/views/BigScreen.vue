@@ -108,8 +108,6 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import dayjs from 'dayjs'
 import {
   getStats,
@@ -121,6 +119,7 @@ import {
 } from '@/api/dashboard'
 import { getDeviceList } from '@/api/device'
 import { getFarmList } from '@/api/farm'
+import { getPublicConfig } from '@/api/systemConfig'
 
 const router = useRouter()
 
@@ -169,38 +168,59 @@ const darkAxis = {
   splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }
 }
 
-const createMarkerIcon = (status) => {
-  const colors = { 1: '#36d7b7', 0: '#7f8c8d', 2: '#e74c3c' }
-  const color = colors[status] || '#7f8c8d'
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px ${color},0 0 20px ${color}40;"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9]
+const loadAMap = async () => {
+  if (window.AMap) {
+    return window.AMap
+  }
+
+  // 从后端获取配置
+  const configRes = await getPublicConfig('amap_key,amap_security_js_code,amap_center_longitude,amap_center_latitude,amap_default_zoom,amap_map_style')
+  const config = configRes.data || {}
+
+  const key = config.amap_key
+  if (!key) {
+    throw new Error('未配置高德地图 API Key，请在数据库 system_config 表中配置 amap_key')
+  }
+
+  // 设置安全密钥
+  if (config.amap_security_js_code) {
+    window._AMapSecurityConfig = {
+      securityJsCode: config.amap_security_js_code
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}`
+    script.onload = () => resolve({ AMap: window.AMap, config })
+    script.onerror = () => reject(new Error('高德地图加载失败'))
+    document.head.appendChild(script)
   })
 }
 
 const initMap = async () => {
   if (!mapContainer.value) return
 
-  // Default center: Lishui, Zhejiang
-  map = L.map(mapContainer.value, {
-    center: [28.46, 119.92],
-    zoom: 10,
-    zoomControl: false,
-    attributionControl: false
-  })
-
-  // Dark style tile layer (CartoDB dark matter) with custom filter
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    className: 'dark-tiles'
-  }).addTo(map)
-
-  L.control.zoom({ position: 'bottomright' }).addTo(map)
-
-  // Load farms and devices to add markers
   try {
+    const { AMap, config } = await loadAMap()
+
+    // 从配置获取地图参数
+    const centerLng = parseFloat(config.amap_center_longitude) || 119.92
+    const centerLat = parseFloat(config.amap_center_latitude) || 28.46
+    const zoom = parseInt(config.amap_default_zoom) || 10
+    const mapStyle = config.amap_map_style || 'amap://styles/dark'
+
+    // 创建地图实例，使用深色主题
+    map = new AMap.Map(mapContainer.value, {
+      viewMode: '2D',
+      center: [centerLng, centerLat],
+      zoom: zoom,
+      mapStyle: mapStyle,
+      features: ['bg', 'road', 'building'],
+      showIndoorMap: false
+    })
+
+    // 加载农场和设备数据
     const [farmRes, deviceRes] = await Promise.all([
       getFarmList({ pageSize: 100 }),
       getDeviceList({ pageSize: 200 })
@@ -209,47 +229,124 @@ const initMap = async () => {
     const farms = farmRes.data || []
     const devices = deviceRes.data || []
 
-    // Add farm markers
+    // 农场标记样式
+    const farmMarkerContent = (name) => `
+      <div style="
+        background: linear-gradient(135deg, rgba(54,215,183,0.95), rgba(46,204,113,0.9));
+        color: #fff;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: Microsoft YaHei, sans-serif;
+        white-space: nowrap;
+        box-shadow: 0 0 12px rgba(54,215,183,0.5), 0 2px 6px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255,255,255,0.2);
+        letter-spacing: 1px;
+      ">${name}</div>
+    `
+
+    // 设备标记样式
+    const deviceMarkerContent = (status) => {
+      const colors = { 1: '#36d7b7', 0: '#7f8c8d', 2: '#e74c3c' }
+      const color = colors[status] || '#7f8c8d'
+      return `
+        <div style="
+          width: 14px;
+          height: 14px;
+          background: ${color};
+          border: 2px solid #fff;
+          border-radius: 50%;
+          box-shadow: 0 0 10px ${color}, 0 0 20px ${color}40;
+        "></div>
+      `
+    }
+
+    // 添加农场标记
     farms.forEach(f => {
       if (f.longitude && f.latitude) {
-        const lat = parseFloat(f.latitude)
         const lng = parseFloat(f.longitude)
+        const lat = parseFloat(f.latitude)
         if (!isNaN(lat) && !isNaN(lng)) {
-          L.marker([lat, lng], {
-            icon: L.divIcon({
-              className: 'custom-marker',
-              html: `<div style="background:linear-gradient(135deg,rgba(54,215,183,0.95),rgba(46,204,113,0.9));color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-family:Microsoft YaHei,sans-serif;white-space:nowrap;box-shadow:0 0 12px rgba(54,215,183,0.5),0 2px 6px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);letter-spacing:1px;">${f.name}</div>`,
-              iconSize: [80, 24],
-              iconAnchor: [40, 12]
+          const marker = new AMap.Marker({
+            position: [lng, lat],
+            content: farmMarkerContent(f.name),
+            offset: new AMap.Pixel(-40, -12)
+          })
+          marker.setMap(map)
+          marker.on('click', () => {
+            const infoWindow = new AMap.InfoWindow({
+              content: `
+                <div style="
+                  font-family: Microsoft YaHei, sans-serif;
+                  padding: 8px 12px;
+                  color: #fff;
+                  background: rgba(10,22,40,0.9);
+                  border-radius: 4px;
+                  min-width: 120px;
+                ">
+                  <b style="color: #36d7b7; font-size: 14px;">${f.name}</b><br>
+                  <span style="color: rgba(255,255,255,0.7);">地址: ${f.address || '-'}</span><br>
+                  <span style="color: rgba(255,255,255,0.7);">面积: ${f.area || '-'}亩</span>
+                </div>
+              `,
+              offset: new AMap.Pixel(0, -30)
             })
-          }).addTo(map).bindPopup(`<div style="font-family:Microsoft YaHei,sans-serif;padding:4px 8px;color:#fff;background:rgba(10,22,40,0.9);border-radius:4px;"><b style="color:#36d7b7;">${f.name}</b><br style="margin:4px 0;"><span style="color:rgba(255,255,255,0.7);">地址: ${f.address || '-'}</span><br><span style="color:rgba(255,255,255,0.7);">面积: ${f.area || '-'}亩</span></div>`, { className: 'dark-popup' })
+            infoWindow.open(map, marker.getPosition())
+          })
         }
       }
     })
 
-    // Add device markers
+    // 添加设备标记
     devices.forEach(d => {
       if (d.longitude && d.latitude) {
-        const lat = parseFloat(d.latitude)
         const lng = parseFloat(d.longitude)
+        const lat = parseFloat(d.latitude)
         if (!isNaN(lat) && !isNaN(lng)) {
-          L.marker([lat, lng], { icon: createMarkerIcon(d.status) })
-            .addTo(map)
-            .bindPopup(`<div style="font-family:Microsoft YaHei,sans-serif;padding:4px 8px;color:#fff;background:rgba(10,22,40,0.9);border-radius:4px;min-width:120px;"><b style="color:#36d7b7;">${d.name}</b><br style="margin:4px 0;"><span style="color:rgba(255,255,255,0.7);">编码: ${d.code || '-'}</span><br><span style="color:rgba(255,255,255,0.7);">状态: <span style="color:${d.status === 1 ? '#36d7b7' : d.status === 2 ? '#e74c3c' : '#7f8c8d'};">${d.status === 1 ? '在线' : d.status === 2 ? '故障' : '离线'}</span></span><br><span style="color:rgba(255,255,255,0.7);">位置: ${d.location || '-'}</span></div>`, { className: 'dark-popup' })
+          const statusText = d.status === 1 ? '在线' : d.status === 2 ? '故障' : '离线'
+          const statusColor = d.status === 1 ? '#36d7b7' : d.status === 2 ? '#e74c3c' : '#7f8c8d'
+          const marker = new AMap.Marker({
+            position: [lng, lat],
+            content: deviceMarkerContent(d.status),
+            offset: new AMap.Pixel(-9, -9)
+          })
+          marker.setMap(map)
+          marker.on('click', () => {
+            const infoWindow = new AMap.InfoWindow({
+              content: `
+                <div style="
+                  font-family: Microsoft YaHei, sans-serif;
+                  padding: 8px 12px;
+                  color: #fff;
+                  background: rgba(10,22,40,0.9);
+                  border-radius: 4px;
+                  min-width: 140px;
+                ">
+                  <b style="color: #36d7b7; font-size: 14px;">${d.name}</b><br>
+                  <span style="color: rgba(255,255,255,0.7);">编码: ${d.code || '-'}</span><br>
+                  <span style="color: rgba(255,255,255,0.7);">状态: <span style="color: ${statusColor};">${statusText}</span></span><br>
+                  <span style="color: rgba(255,255,255,0.7);">位置: ${d.location || '-'}</span>
+                </div>
+              `,
+              offset: new AMap.Pixel(0, -20)
+            })
+            infoWindow.open(map, marker.getPosition())
+          })
         }
       }
     })
 
-    // If we have markers, fit bounds
+    // 自动适配视野
     if (farms.length > 0 && farms.some(f => f.longitude)) {
-      const validFarms = farms.filter(f => f.longitude)
-      if (validFarms.length > 0) {
-        const bounds = L.latLngBounds(validFarms.map(f => [parseFloat(f.latitude), parseFloat(f.longitude)]))
-        map.fitBounds(bounds, { padding: [40, 40] })
+      const bounds = farms
+        .filter(f => f.longitude && f.latitude)
+        .map(f => [parseFloat(f.longitude), parseFloat(f.latitude)])
+      if (bounds.length > 0) {
+        map.setFitView(null, false, [40, 40, 40, 40])
       }
     }
   } catch (e) {
-    console.error('地图数据加载失败:', e)
+    console.error('地图初始化失败:', e)
   }
 }
 
@@ -364,7 +461,6 @@ const handleResize = () => {
   yieldChart?.resize()
   deviceChart?.resize()
   salesChart?.resize()
-  map?.invalidateSize()
 }
 
 const handleKeydown = (e) => {
@@ -388,7 +484,7 @@ onUnmounted(() => {
   yieldChart?.dispose()
   deviceChart?.dispose()
   salesChart?.dispose()
-  map?.remove()
+  map?.destroy()
 })
 </script>
 
@@ -555,9 +651,6 @@ onUnmounted(() => {
   border: 1px solid rgba(54,215,183,0.1);
   overflow: hidden;
 }
-:deep(.dark-tiles) {
-  filter: brightness(0.85) saturate(0.9);
-}
 .map-legend {
   position: absolute;
   bottom: 10px;
@@ -585,39 +678,12 @@ onUnmounted(() => {
   &.fault { background: #e74c3c; }
 }
 
-// Leaflet 深色弹窗样式
-:deep(.dark-popup) {
-  .leaflet-popup-content-wrapper {
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
-  }
-  .leaflet-popup-content {
-    margin: 0;
-    min-width: 0;
-  }
-  .leaflet-popup-tip {
-    background: rgba(10,22,40,0.9);
-    box-shadow: none;
-  }
+// 高德地图 InfoWindow 样式
+:deep(.amap-info-content) {
+  padding: 0 !important;
 }
-:deep(.leaflet-popup-close-button) {
+:deep(.amap-info-sharp) {
   display: none;
-}
-:deep(.leaflet-control-zoom) {
-  a {
-    background: rgba(10,22,40,0.8) !important;
-    color: rgba(255,255,255,0.7) !important;
-    border: 1px solid rgba(54,215,183,0.2) !important;
-    font-family: Microsoft YaHei, sans-serif;
-    &:hover {
-      background: rgba(54,215,183,0.2) !important;
-    }
-  }
-}
-:deep(.leaflet-container) {
-  font-family: Microsoft YaHei, sans-serif;
-  background: #0a1628;
 }
 
 // 告警滚动

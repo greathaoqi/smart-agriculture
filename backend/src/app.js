@@ -25,6 +25,7 @@ const taskRoutes = require('./routes/task');
 const alertRoutes = require('./routes/alert');
 const roleRoutes = require('./routes/role');
 const logRoutes = require('./routes/log');
+const systemConfigRoutes = require('./routes/systemConfig');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/system-config', systemConfigRoutes);
 
 // 404 处理
 app.use((req, res) => {
