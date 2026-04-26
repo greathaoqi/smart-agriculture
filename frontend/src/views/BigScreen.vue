@@ -44,7 +44,8 @@
         <!-- 地图区域 -->
         <div class="bs-panel-box flex1 map-box">
           <div class="panel-title">农场分布地图</div>
-          <div ref="mapContainer" class="map-container"></div>
+          <div ref="mapContainer" class="map-container" v-show="!mapError"></div>
+          <div class="map-error" v-if="mapError">{{ mapError }}</div>
           <div class="map-legend">
             <span class="legend-item"><i class="legend-dot online"></i>在线</span>
             <span class="legend-item"><i class="legend-dot offline"></i>离线</span>
@@ -154,6 +155,7 @@ const statCards = ref([
 const alerts = ref([])
 const tasks = ref([])
 const farmRank = ref([])
+const mapError = ref('')
 
 const formatNumber = (num) => {
   if (num >= 10000) return (num / 10000).toFixed(1) + '万'
@@ -203,6 +205,7 @@ const initMap = async () => {
 
   try {
     const { AMap, config } = await loadAMap()
+    mapError.value = ''
 
     // 从配置获取地图参数
     const centerLng = parseFloat(config.amap_center_longitude) || 119.92
@@ -347,6 +350,7 @@ const initMap = async () => {
     }
   } catch (e) {
     console.error('地图初始化失败:', e)
+    mapError.value = e.message || '地图加载失败'
   }
 }
 
@@ -650,6 +654,16 @@ onUnmounted(() => {
   background: rgba(10,22,40,0.5);
   border: 1px solid rgba(54,215,183,0.1);
   overflow: hidden;
+}
+.map-error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
 }
 .map-legend {
   position: absolute;
