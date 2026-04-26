@@ -232,35 +232,29 @@ const initMap = async () => {
     const farms = farmRes.data || []
     const devices = deviceRes.data || []
 
-    // 农场标记样式
+    // 农场标记样式 - 更精美的设计
     const farmMarkerContent = (name) => `
-      <div style="
-        background: linear-gradient(135deg, rgba(54,215,183,0.95), rgba(46,204,113,0.9));
-        color: #fff;
-        padding: 3px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-family: Microsoft YaHei, sans-serif;
-        white-space: nowrap;
-        box-shadow: 0 0 12px rgba(54,215,183,0.5), 0 2px 6px rgba(0,0,0,0.4);
-        border: 1px solid rgba(255,255,255,0.2);
-        letter-spacing: 1px;
-      ">${name}</div>
+      <div class="farm-marker">
+        <div class="farm-marker-bg"></div>
+        <div class="farm-marker-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </div>
+        <span class="farm-marker-name">${name}</span>
+      </div>
     `
 
-    // 设备标记样式
+    // 设备标记样式 - 带脉冲动画
     const deviceMarkerContent = (status) => {
       const colors = { 1: '#36d7b7', 0: '#7f8c8d', 2: '#e74c3c' }
       const color = colors[status] || '#7f8c8d'
+      const pulseClass = status === 1 ? 'pulse-animation' : ''
       return `
-        <div style="
-          width: 14px;
-          height: 14px;
-          background: ${color};
-          border: 2px solid #fff;
-          border-radius: 50%;
-          box-shadow: 0 0 10px ${color}, 0 0 20px ${color}40;
-        "></div>
+        <div class="device-marker">
+          <div class="device-dot ${pulseClass}" style="background: ${color}; box-shadow: 0 0 8px ${color}, 0 0 16px ${color}40;"></div>
+          ${status === 1 ? `<div class="device-pulse" style="background: ${color};"></div>` : ''}
+        </div>
       `
     }
 
@@ -279,20 +273,30 @@ const initMap = async () => {
           marker.on('click', () => {
             const infoWindow = new AMap.InfoWindow({
               content: `
-                <div style="
-                  font-family: Microsoft YaHei, sans-serif;
-                  padding: 8px 12px;
-                  color: #fff;
-                  background: rgba(10,22,40,0.9);
-                  border-radius: 4px;
-                  min-width: 120px;
-                ">
-                  <b style="color: #36d7b7; font-size: 14px;">${f.name}</b><br>
-                  <span style="color: rgba(255,255,255,0.7);">地址: ${f.address || '-'}</span><br>
-                  <span style="color: rgba(255,255,255,0.7);">面积: ${f.area || '-'}亩</span>
+                <div class="info-popup">
+                  <div class="info-popup-header">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="#36d7b7">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>${f.name}</span>
+                  </div>
+                  <div class="info-popup-body">
+                    <div class="info-row">
+                      <span class="info-label">地址</span>
+                      <span class="info-value">${f.address || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">面积</span>
+                      <span class="info-value">${f.area || '-'} 亩</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">负责人</span>
+                      <span class="info-value">${f.manager || '-'}</span>
+                    </div>
+                  </div>
                 </div>
               `,
-              offset: new AMap.Pixel(0, -30)
+              offset: new AMap.Pixel(0, -35)
             })
             infoWindow.open(map, marker.getPosition())
           })
@@ -317,21 +321,27 @@ const initMap = async () => {
           marker.on('click', () => {
             const infoWindow = new AMap.InfoWindow({
               content: `
-                <div style="
-                  font-family: Microsoft YaHei, sans-serif;
-                  padding: 8px 12px;
-                  color: #fff;
-                  background: rgba(10,22,40,0.9);
-                  border-radius: 4px;
-                  min-width: 140px;
-                ">
-                  <b style="color: #36d7b7; font-size: 14px;">${d.name}</b><br>
-                  <span style="color: rgba(255,255,255,0.7);">编码: ${d.code || '-'}</span><br>
-                  <span style="color: rgba(255,255,255,0.7);">状态: <span style="color: ${statusColor};">${statusText}</span></span><br>
-                  <span style="color: rgba(255,255,255,0.7);">位置: ${d.location || '-'}</span>
+                <div class="info-popup device-popup">
+                  <div class="info-popup-header">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="${statusColor}">
+                      <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span>${d.name}</span>
+                    <span class="status-badge" style="background: ${statusColor}20; color: ${statusColor};">${statusText}</span>
+                  </div>
+                  <div class="info-popup-body">
+                    <div class="info-row">
+                      <span class="info-label">编码</span>
+                      <span class="info-value">${d.code || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">位置</span>
+                      <span class="info-value">${d.location || '-'}</span>
+                    </div>
+                  </div>
                 </div>
               `,
-              offset: new AMap.Pixel(0, -20)
+              offset: new AMap.Pixel(0, -25)
             })
             infoWindow.open(map, marker.getPosition())
           })
@@ -690,6 +700,121 @@ onUnmounted(() => {
   &.online { background: #36d7b7; }
   &.offline { background: #7f8c8d; }
   &.fault { background: #e74c3c; }
+}
+
+// 农场标记样式
+:deep(.farm-marker) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, rgba(54,215,183,0.9), rgba(46,204,113,0.85));
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(54,215,183,0.4), 0 0 30px rgba(54,215,183,0.2);
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(54,215,183,0.5), 0 0 40px rgba(54,215,183,0.3);
+  }
+}
+:deep(.farm-marker-icon) {
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:deep(.farm-marker-name) {
+  color: #fff;
+  font-size: 13px;
+  font-family: Microsoft YaHei, sans-serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+// 设备标记样式
+:deep(.device-marker) {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+:deep(.device-dot) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.9);
+  z-index: 2;
+}
+:deep(.device-pulse) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  opacity: 0;
+  z-index: 1;
+  animation: devicePulse 2s ease-out infinite;
+}
+@keyframes devicePulse {
+  0% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.5); }
+}
+
+// 信息弹窗样式
+:deep(.info-popup) {
+  font-family: Microsoft YaHei, sans-serif;
+  background: linear-gradient(135deg, rgba(15,35,60,0.95), rgba(10,25,50,0.95));
+  border-radius: 12px;
+  min-width: 180px;
+  overflow: hidden;
+  border: 1px solid rgba(54,215,183,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(54,215,183,0.15);
+}
+:deep(.info-popup-header) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(90deg, rgba(54,215,183,0.15), transparent);
+  border-bottom: 1px solid rgba(54,215,183,0.2);
+  color: #36d7b7;
+  font-size: 15px;
+  font-weight: 600;
+}
+:deep(.info-popup-body) {
+  padding: 10px 14px;
+}
+:deep(.info-row) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+:deep(.info-label) {
+  color: rgba(255,255,255,0.5);
+}
+:deep(.info-value) {
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+}
+:deep(.status-badge) {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 // 高德地图 InfoWindow 样式
