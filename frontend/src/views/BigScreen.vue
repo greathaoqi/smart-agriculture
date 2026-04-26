@@ -653,7 +653,7 @@ onUnmounted(() => {
   min-height: 0;
 }
 
-// 地图区域
+// 地图区域 - 与其他面板风格统一
 .map-box {
   position: relative;
 }
@@ -661,86 +661,110 @@ onUnmounted(() => {
   flex: 1;
   min-height: 300px;
   border-radius: 4px;
-  background: rgba(10,22,40,0.5);
-  border: 1px solid rgba(54,215,183,0.1);
+  background: linear-gradient(180deg, rgba(13,33,55,0.6), rgba(10,22,40,0.8));
+  border: 1px solid rgba(54,215,183,0.15);
   overflow: hidden;
+  // 地图未加载时显示占位图案
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(54,215,183,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 70% 60%, rgba(93,173,226,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(54,215,183,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
 }
 .map-error {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.5);
-  font-size: 14px;
+  gap: 12px;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
   text-align: center;
-  padding: 20px;
+  padding: 30px;
+  background: linear-gradient(180deg, rgba(13,33,55,0.6), rgba(10,22,40,0.8));
+  border-radius: 4px;
+  &::before {
+    content: '';
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(54,215,183,0.15) 0%, transparent 70%);
+    border: 1px dashed rgba(54,215,183,0.3);
+    border-radius: 50%;
+  }
 }
 .map-legend {
   position: absolute;
   bottom: 10px;
   right: 10px;
-  background: rgba(0,0,0,0.6);
-  padding: 6px 12px;
-  border-radius: 4px;
+  background: rgba(13,33,55,0.85);
+  padding: 8px 14px;
+  border-radius: 6px;
   font-size: 11px;
   display: flex;
-  gap: 12px;
+  gap: 16px;
   border: 1px solid rgba(54,215,183,0.2);
+  backdrop-filter: blur(4px);
 }
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: rgba(255,255,255,0.7);
+  gap: 5px;
+  color: rgba(255,255,255,0.6);
 }
 .legend-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.3);
   &.online { background: #36d7b7; }
   &.offline { background: #7f8c8d; }
   &.fault { background: #e74c3c; }
 }
 
-// 农场标记样式
+// 农场标记样式 - 更柔和融入深色主题
 :deep(.farm-marker) {
   position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, rgba(54,215,183,0.9), rgba(46,204,113,0.85));
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(54,215,183,0.4), 0 0 30px rgba(54,215,183,0.2);
-  border: 1px solid rgba(255,255,255,0.25);
+  padding: 5px 10px;
+  background: rgba(13,33,55,0.85);
+  border-radius: 16px;
+  border: 1px solid rgba(54,215,183,0.4);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(54,215,183,0.5), 0 0 40px rgba(54,215,183,0.3);
+    background: rgba(54,215,183,0.2);
+    border-color: rgba(54,215,183,0.6);
+    transform: scale(1.02);
   }
 }
 :deep(.farm-marker-icon) {
-  color: #fff;
+  color: #36d7b7;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 :deep(.farm-marker-name) {
-  color: #fff;
-  font-size: 13px;
+  color: #36d7b7;
+  font-size: 12px;
   font-family: Microsoft YaHei, sans-serif;
   font-weight: 500;
-  letter-spacing: 1px;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-// 设备标记样式
+// 设备标记样式 - 小巧精致
 :deep(.device-marker) {
   position: relative;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
 }
 :deep(.device-dot) {
@@ -748,10 +772,10 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.9);
+  border: 1.5px solid rgba(255,255,255,0.7);
   z-index: 2;
 }
 :deep(.device-pulse) {
@@ -759,62 +783,60 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   opacity: 0;
   z-index: 1;
-  animation: devicePulse 2s ease-out infinite;
+  animation: devicePulse 2.5s ease-out infinite;
 }
 @keyframes devicePulse {
-  0% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.5); }
+  0% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
 }
 
-// 信息弹窗样式
+// 信息弹窗样式 - 简洁深色风格
 :deep(.info-popup) {
   font-family: Microsoft YaHei, sans-serif;
-  background: linear-gradient(135deg, rgba(15,35,60,0.95), rgba(10,25,50,0.95));
-  border-radius: 12px;
-  min-width: 180px;
+  background: rgba(13,33,55,0.95);
+  border-radius: 8px;
+  min-width: 160px;
   overflow: hidden;
   border: 1px solid rgba(54,215,183,0.3);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(54,215,183,0.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 :deep(.info-popup-header) {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  background: linear-gradient(90deg, rgba(54,215,183,0.15), transparent);
-  border-bottom: 1px solid rgba(54,215,183,0.2);
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(54,215,183,0.1);
+  border-bottom: 1px solid rgba(54,215,183,0.15);
   color: #36d7b7;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 :deep(.info-popup-body) {
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 :deep(.info-row) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
-  font-size: 13px;
+  padding: 5px 0;
+  font-size: 12px;
 }
 :deep(.info-label) {
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.45);
 }
 :deep(.info-value) {
-  color: rgba(255,255,255,0.9);
-  font-weight: 500;
+  color: rgba(255,255,255,0.85);
 }
 :deep(.status-badge) {
   margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
 }
 
 // 高德地图 InfoWindow 样式
