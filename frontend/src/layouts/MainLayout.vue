@@ -350,8 +350,25 @@ onMounted(() => {
     color: #fff;
   }
 
+  // 子菜单展开后的背景
+  :deep(.el-sub-menu .el-menu) {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
   :deep(.el-sub-menu .el-menu-item) {
     padding-left: 48px !important;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    &.is-active {
+      background: rgba(64, 158, 255, 0.3);
+      color: #409eff;
+    }
   }
 }
 
