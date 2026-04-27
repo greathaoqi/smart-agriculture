@@ -1,7 +1,12 @@
 <template>
   <div class="bigscreen">
     <!-- ===== 全屏背景地图 ===== -->
-    <div ref="mapContainer" class="map-fullscreen"></div>
+    <div ref="mapContainer" class="map-fullscreen">
+      <div class="map-loading" v-if="!mapLoaded && !mapError">
+        <div class="loading-spinner"></div>
+        <span>地图加载中...</span>
+      </div>
+    </div>
     <div class="map-fallback" v-if="mapError">
       <div class="fallback-content">
         <svg viewBox="0 0 48 48" width="64" height="64" fill="none">
@@ -178,6 +183,7 @@ const updateClock = () => {
 // Map
 const mapContainer = ref(null)
 const mapError = ref('')
+const mapLoaded = ref(false)
 let map = null
 
 // Data
@@ -242,7 +248,7 @@ const initMap = async () => {
     const centerLng = parseFloat(config.amap_center_longitude) || 119.92
     const centerLat = parseFloat(config.amap_center_latitude) || 28.46
     const zoom = parseInt(config.amap_default_zoom) || 10
-    const mapStyle = config.amap_map_style || 'amap://styles/dark'
+    const mapStyle = config.amap_map_style || 'amap://styles/normal'
 
     map = new AMap.Map(mapContainer.value, {
       viewMode: '2D',
@@ -349,6 +355,8 @@ const initMap = async () => {
     if (farms.length > 0 && farms.some(f => f.longitude)) {
       map.setFitView(null, false, [80, 80, 80, 80])
     }
+
+    mapLoaded.value = true
   } catch (e) {
     console.error('地图初始化失败:', e)
     mapError.value = e.message || '地图加载失败'
@@ -445,6 +453,33 @@ onUnmounted(() => {
   z-index: 1;
   width: 100%;
   height: 100%;
+}
+
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ff3b30;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .map-fallback {
