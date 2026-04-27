@@ -1,7 +1,7 @@
 <template>
   <div class="bigscreen">
     <!-- ===== 全屏背景地图 ===== -->
-    <div ref="mapContainer" class="map-fullscreen" v-show="!mapError"></div>
+    <div ref="mapContainer" class="map-fullscreen"></div>
     <div class="map-fallback" v-if="mapError">
       <div class="fallback-content">
         <svg viewBox="0 0 48 48" width="64" height="64" fill="none">
@@ -443,16 +443,19 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   z-index: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .map-fallback {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   background: linear-gradient(160deg, #0a1628 0%, #1a2a4a 50%, #0a1628 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 
   .fallback-content {
     text-align: center;
