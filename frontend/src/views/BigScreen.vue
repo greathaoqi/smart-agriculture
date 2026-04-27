@@ -1,5 +1,18 @@
 <template>
   <div class="bigscreen">
+    <!-- ===== 全屏背景地图 ===== -->
+    <div ref="mapContainer" class="map-fullscreen" v-show="!mapError"></div>
+    <div class="map-fallback" v-if="mapError">
+      <div class="fallback-content">
+        <svg viewBox="0 0 48 48" width="64" height="64" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="#ff3b30" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>
+          <path d="M24 8C16.268 8 10 14.268 10 22c0 11 14 18 14 18s14-7 14-18c0-7.732-6.268-14-14-14z" fill="#ff3b30" opacity="0.15"/>
+          <circle cx="24" cy="22" r="5" fill="#ff3b30" opacity="0.6"/>
+        </svg>
+        <span>{{ mapError }}</span>
+      </div>
+    </div>
+
     <!-- ===== 顶部 Header ===== -->
     <header class="bs-header">
       <div class="header-wing left"></div>
@@ -17,156 +30,115 @@
       </button>
     </header>
 
-    <!-- ===== 主体三栏布局 ===== -->
-    <div class="bs-body">
-      <!-- ====== 左侧面板 (25%) ====== -->
-      <div class="bs-col bs-left">
-        <!-- 农田统计列表 -->
-        <Card title="农田区域统计" class="col-card">
-          <div class="farm-stat-list">
-            <div class="farm-stat-item" v-for="(s, i) in statCards" :key="s.key">
-              <div class="stat-icon" :class="'c' + i">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                  <path v-if="i===0" d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
-                  <path v-if="i===1" d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/>
-                  <path v-if="i===2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  <path v-if="i===3" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
-                </svg>
-              </div>
-              <div class="stat-info">
-                <span class="stat-val">{{ s.display }}</span>
-                <span class="stat-lbl">{{ s.label }}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- 环境数据环形图 -->
-        <Card title="设备状态" class="col-card flex1">
-          <ChartPie
-            :data="devicePieData"
-            type="pie"
-            :colors="['#ff3b30', '#ff9500', '#34c759', '#8e8e93']"
-          />
-        </Card>
-
-        <!-- 作物占比环形图 -->
-        <Card title="作物种植面积" class="col-card flex1">
-          <ChartPie
-            :data="cropPieData"
-            type="pie"
-            :colors="['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#5ac8fa']"
-          />
-        </Card>
-
-        <!-- 区域产量柱状图 -->
-        <Card title="产量趋势" class="col-card flex1">
-          <ChartPie
-            :data="yieldBarData"
-            type="bar"
-            :colors="['#ff3b30']"
-          />
-        </Card>
+    <!-- ===== KPI 浮层：顶部中间 ===== -->
+    <div class="kpi-float-bar">
+      <div class="kpi-float-item" v-for="(kpi, i) in kpiList" :key="i">
+        <div class="kpi-float-icon" :style="{ background: kpi.iconBg }">
+          <span v-html="kpi.icon"></span>
+        </div>
+        <div class="kpi-float-content">
+          <div class="kpi-float-val" :style="{ color: kpi.color }">{{ kpi.value }}</div>
+          <div class="kpi-float-label">{{ kpi.label }}</div>
+        </div>
       </div>
+    </div>
 
-      <!-- ====== 中央区域 (50%) ====== -->
-      <div class="bs-col bs-center">
-        <!-- KPI 卡片行 -->
-        <div class="kpi-row">
-          <div class="kpi-card" v-for="(kpi, i) in kpiList" :key="i">
-            <div class="kpi-icon" :style="{ background: kpi.iconBg }">
-              <span v-html="kpi.icon"></span>
-            </div>
-            <div class="kpi-num" :style="{ color: kpi.color }">{{ kpi.value }}</div>
-            <div class="kpi-name">{{ kpi.label }}</div>
-          </div>
-        </div>
-
-        <!-- 超大核心数字 -->
-        <div class="hero-section">
-          <div class="hero-glow"></div>
-          <div class="hero-ring ring-outer"></div>
-          <div class="hero-ring ring-inner"></div>
-          <div class="hero-content">
-            <div class="hero-value">{{ heroValue }}</div>
-            <div class="hero-label">年度累计总产量 (kg)</div>
-          </div>
-        </div>
-
-        <!-- 地图 -->
-        <div class="map-section">
-          <div class="map-title-bar">
-            <span class="map-title-dot"></span>
-            <span>农场分布地图</span>
-          </div>
-          <div ref="mapContainer" class="map-container" v-show="!mapError"></div>
-          <div class="map-preview" v-if="mapError">
-            <div class="preview-placeholder">
-              <svg viewBox="0 0 48 48" width="48" height="48" fill="none">
-                <circle cx="24" cy="24" r="20" stroke="#ff3b30" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>
-                <path d="M24 8C16.268 8 10 14.268 10 22c0 11 14 18 14 18s14-7 14-18c0-7.732-6.268-14-14-14z" fill="#ff3b30" opacity="0.15"/>
-                <circle cx="24" cy="22" r="5" fill="#ff3b30" opacity="0.6"/>
+    <!-- ===== 左侧浮层 ===== -->
+    <div class="side-float side-left">
+      <!-- 农田统计 -->
+      <Card title="农田区域统计" class="float-card">
+        <div class="farm-stat-list">
+          <div class="farm-stat-item" v-for="(s, i) in statCards" :key="s.key">
+            <div class="stat-icon" :class="'c' + i">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path v-if="i===0" d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
+                <path v-if="i===1" d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/>
+                <path v-if="i===2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                <path v-if="i===3" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
               </svg>
-              <span>{{ mapError }}</span>
             </div>
-          </div>
-          <div class="map-legend">
-            <span class="legend-item"><i class="legend-dot online"></i>在线</span>
-            <span class="legend-item"><i class="legend-dot offline"></i>离线</span>
-            <span class="legend-item"><i class="legend-dot fault"></i>故障</span>
+            <div class="stat-info">
+              <span class="stat-val">{{ s.display }}</span>
+              <span class="stat-lbl">{{ s.label }}</span>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <!-- ====== 右侧面板 (25%) ====== -->
-      <div class="bs-col bs-right">
-        <!-- 销售趋势 -->
-        <Card title="销售趋势" class="col-card flex1">
-          <ChartPie
-            :data="salesLineData"
-            type="line"
-            :colors="['#ff9500']"
-          />
-        </Card>
+      <!-- 设备状态 -->
+      <Card title="设备状态" class="float-card flex1">
+        <ChartPie
+          :data="devicePieData"
+          type="pie"
+          :colors="['#ff3b30', '#ff9500', '#34c759', '#8e8e93']"
+        />
+      </Card>
 
-        <!-- 农场排行 -->
-        <Card title="农场产量排行" class="col-card flex1">
-          <div class="rank-list">
-            <div class="rank-item" v-for="(f, i) in farmRank" :key="i">
-              <span class="rank-no" :class="{ top3: i < 3 }">{{ i + 1 }}</span>
-              <span class="rank-name">{{ f.name }}</span>
-              <div class="rank-bar-wrap">
-                <div class="rank-bar" :style="{ width: f.percent + '%' }"></div>
-              </div>
-              <span class="rank-val">{{ f.value }}</span>
+      <!-- 作物种植面积 -->
+      <Card title="作物种植面积" class="float-card flex1">
+        <ChartPie
+          :data="cropPieData"
+          type="pie"
+          :colors="['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#5ac8fa']"
+        />
+      </Card>
+    </div>
+
+    <!-- ===== 右侧浮层 ===== -->
+    <div class="side-float side-right">
+      <!-- 销售趋势 -->
+      <Card title="销售趋势" class="float-card flex1">
+        <ChartPie
+          :data="salesLineData"
+          type="line"
+          :colors="['#ff9500']"
+        />
+      </Card>
+
+      <!-- 农场产量排行 -->
+      <Card title="农场产量排行" class="float-card flex1">
+        <div class="rank-list">
+          <div class="rank-item" v-for="(f, i) in farmRank" :key="i">
+            <span class="rank-no" :class="{ top3: i < 3 }">{{ i + 1 }}</span>
+            <span class="rank-name">{{ f.name }}</span>
+            <div class="rank-bar-wrap">
+              <div class="rank-bar" :style="{ width: f.percent + '%' }"></div>
             </div>
+            <span class="rank-val">{{ f.value }}</span>
           </div>
-        </Card>
+        </div>
+      </Card>
 
-        <!-- 实时告警 -->
-        <Card title="实时告警" class="col-card flex1">
-          <div class="alert-scroll">
-            <div class="alert-item" v-for="(a, i) in alerts" :key="i">
-              <span class="alert-tag" :class="a.type === '故障' ? 'danger' : 'warning'">{{ a.type }}</span>
-              <span class="alert-text">{{ a.device }} - {{ a.message || a.farm }}</span>
-              <span class="alert-time">{{ formatTime(a.time) }}</span>
-            </div>
-            <div v-if="!alerts.length" class="empty-hint">暂无告警信息</div>
+      <!-- 实时告警 -->
+      <Card title="实时告警" class="float-card flex1">
+        <div class="alert-scroll">
+          <div class="alert-item" v-for="(a, i) in alerts" :key="i">
+            <span class="alert-tag" :class="a.type === '故障' ? 'danger' : 'warning'">{{ a.type }}</span>
+            <span class="alert-text">{{ a.device }} - {{ a.message || a.farm }}</span>
+            <span class="alert-time">{{ formatTime(a.time) }}</span>
           </div>
-        </Card>
+          <div v-if="!alerts.length" class="empty-hint">暂无告警信息</div>
+        </div>
+      </Card>
 
-        <!-- 待办任务 -->
-        <Card title="待办任务" class="col-card flex1">
-          <div class="task-list">
-            <div class="task-item" v-for="(t, i) in tasks" :key="i">
-              <span class="task-priority" :class="'p' + t.priority"></span>
-              <span class="task-title">{{ t.title }}</span>
-              <span class="task-date">{{ t.due_date || '-' }}</span>
-            </div>
-            <div v-if="!tasks.length" class="empty-hint">暂无待办任务</div>
+      <!-- 待办任务 -->
+      <Card title="待办任务" class="float-card flex1">
+        <div class="task-list">
+          <div class="task-item" v-for="(t, i) in tasks" :key="i">
+            <span class="task-priority" :class="'p' + t.priority"></span>
+            <span class="task-title">{{ t.title }}</span>
+            <span class="task-date">{{ t.due_date || '-' }}</span>
           </div>
-        </Card>
-      </div>
+          <div v-if="!tasks.length" class="empty-hint">暂无待办任务</div>
+        </div>
+      </Card>
+    </div>
+
+    <!-- ===== 地图图例 ===== -->
+    <div class="map-legend">
+      <span class="legend-item"><i class="legend-dot online"></i>在线</span>
+      <span class="legend-item"><i class="legend-dot offline"></i>离线</span>
+      <span class="legend-item"><i class="legend-dot fault"></i>故障</span>
     </div>
   </div>
 </template>
@@ -217,19 +189,17 @@ const statCards = ref([
 ])
 
 const kpiList = ref([
-  { label: '农场总数', value: '-', color: '#ff3b30', iconBg: 'rgba(255,59,48,0.1)', icon: '🏠' },
-  { label: '设备在线率', value: '-', color: '#ff9500', iconBg: 'rgba(255,149,0,0.1)', icon: '📡' },
-  { label: '本月产量', value: '-', color: '#34c759', iconBg: 'rgba(52,199,89,0.1)', icon: '🌾' },
-  { label: '本月销售额', value: '-', color: '#5ac8fa', iconBg: 'rgba(90,200,250,0.1)', icon: '💰' }
+  { label: '农场总数', value: '-', color: '#ff3b30', iconBg: 'rgba(255,59,48,0.15)', icon: '🏠' },
+  { label: '设备在线率', value: '-', color: '#ff9500', iconBg: 'rgba(255,149,0,0.15)', icon: '📡' },
+  { label: '本月产量', value: '-', color: '#34c759', iconBg: 'rgba(52,199,89,0.15)', icon: '🌾' },
+  { label: '本月销售额', value: '-', color: '#5ac8fa', iconBg: 'rgba(90,200,250,0.15)', icon: '💰' }
 ])
 
-const heroValue = ref('0')
 const alerts = ref([])
 const tasks = ref([])
 const farmRank = ref([])
 const devicePieData = ref([])
 const cropPieData = ref([])
-const yieldBarData = ref([])
 const salesLineData = ref([])
 
 const formatNumber = (num) => {
@@ -272,7 +242,7 @@ const initMap = async () => {
     const centerLng = parseFloat(config.amap_center_longitude) || 119.92
     const centerLat = parseFloat(config.amap_center_latitude) || 28.46
     const zoom = parseInt(config.amap_default_zoom) || 10
-    const mapStyle = config.amap_map_style || 'amap://styles/light'
+    const mapStyle = config.amap_map_style || 'amap://styles/dark'
 
     map = new AMap.Map(mapContainer.value, {
       viewMode: '2D',
@@ -377,7 +347,7 @@ const initMap = async () => {
     })
 
     if (farms.length > 0 && farms.some(f => f.longitude)) {
-      map.setFitView(null, false, [40, 40, 40, 40])
+      map.setFitView(null, false, [80, 80, 80, 80])
     }
   } catch (e) {
     console.error('地图初始化失败:', e)
@@ -413,11 +383,7 @@ const loadData = async () => {
     kpiList.value[2].value = yd.length ? formatNumber(yd[yd.length - 1].total_yield) : '-'
     kpiList.value[3].value = '¥' + formatNumber(s.totalSales)
 
-    // hero
-    heroValue.value = formatNumber(s.totalYield)
-
     // charts
-    yieldBarData.value = (yieldData.data || []).map(d => ({ name: d.month, value: d.total_yield || 0 }))
     salesLineData.value = (yieldData.data || []).map(d => ({
       name: d.month,
       value: Math.round((d.total_yield || 0) * (3 + Math.random() * 2))
@@ -466,35 +432,53 @@ onUnmounted(() => {
 .bigscreen {
   position: fixed;
   inset: 0;
-  background: linear-gradient(160deg, #fef5f0 0%, #f0f4ff 40%, #f5f0fe 70%, #fef5f0 100%);
-  color: #333;
+  background: #0a1628;
+  color: #fff;
   font-family: 'Microsoft YaHei', -apple-system, sans-serif;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse at 20% 20%, rgba(255, 59, 48, 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, rgba(255, 149, 0, 0.05) 0%, transparent 50%);
-    pointer-events: none;
+// ===== 全屏背景地图 =====
+.map-fullscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(160deg, #0a1628 0%, #1a2a4a 50%, #0a1628 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .fallback-content {
+    text-align: center;
+    color: rgba(255, 59, 48, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    font-size: 16px;
   }
 }
 
-// ===== 顶部 =====
+// ===== 顶部 Header =====
 .bs-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  flex-shrink: 0;
+  z-index: 100;
   padding: 0 30px;
-  background: linear-gradient(180deg, #ff3b30 0%, #e0331e 100%);
-  box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
+  background: linear-gradient(180deg, rgba(255, 59, 48, 0.95) 0%, rgba(200, 40, 30, 0.95) 100%);
+  box-shadow: 0 4px 30px rgba(255, 59, 48, 0.4);
 
   &::after {
     content: '';
@@ -533,13 +517,12 @@ onUnmounted(() => {
   font-weight: 700;
   color: #fff;
   letter-spacing: 6px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .header-wing {
   flex: 1;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   position: relative;
 
   &.left {
@@ -620,38 +603,113 @@ onUnmounted(() => {
   }
 }
 
-// ===== 主体 =====
-.bs-body {
-  flex: 1;
+// ===== KPI 浮层 =====
+.kpi-float-bar {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
   display: flex;
   gap: 16px;
-  padding: 16px;
-  min-height: 0;
-  position: relative;
-  z-index: 1;
+  padding: 12px 20px;
+  background: rgba(10, 22, 40, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-.bs-col {
+.kpi-float-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 59, 48, 0.3);
+    transform: translateY(-2px);
+  }
+}
+
+.kpi-float-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.kpi-float-content {
+  text-align: left;
+}
+
+.kpi-float-val {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'DIN', 'Arial', sans-serif;
+  line-height: 1.2;
+}
+
+.kpi-float-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+
+// ===== 侧边浮层 =====
+.side-float {
+  position: absolute;
+  top: 160px;
+  bottom: 24px;
+  width: 320px;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 0;
+  overflow: hidden;
+  padding: 8px 0;
+
+  &.side-left {
+    left: 24px;
+  }
+
+  &.side-right {
+    right: 24px;
+  }
 }
 
-.bs-left, .bs-right {
-  width: 24%;
-  flex-shrink: 0;
-}
+.float-card {
+  background: rgba(10, 22, 40, 0.8) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
 
-.bs-center {
-  flex: 1;
-  gap: 16px;
-}
-
-.col-card {
   &.flex1 {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.card-title) {
+    color: #ff9500 !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  :deep(.card-body) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -659,7 +717,7 @@ onUnmounted(() => {
 .farm-stat-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .farm-stat-item {
@@ -667,14 +725,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: linear-gradient(135deg, rgba(255, 59, 48, 0.04), rgba(255, 149, 0, 0.03));
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
-  border: 1px solid rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.2s;
 
   &:hover {
-    border-color: rgba(255, 59, 48, 0.2);
-    box-shadow: 0 2px 12px rgba(255, 59, 48, 0.08);
+    background: rgba(255, 59, 48, 0.1);
+    border-color: rgba(255, 59, 48, 0.3);
   }
 }
 
@@ -687,10 +745,10 @@ onUnmounted(() => {
   justify-content: center;
   flex-shrink: 0;
 
-  &.c0 { background: rgba(255, 59, 48, 0.1); color: #ff3b30; }
-  &.c1 { background: rgba(255, 149, 0, 0.1); color: #ff9500; }
-  &.c2 { background: rgba(52, 199, 89, 0.1); color: #34c759; }
-  &.c3 { background: rgba(90, 200, 250, 0.1); color: #5ac8fa; }
+  &.c0 { background: rgba(255, 59, 48, 0.2); color: #ff3b30; }
+  &.c1 { background: rgba(255, 149, 0, 0.2); color: #ff9500; }
+  &.c2 { background: rgba(52, 199, 89, 0.2); color: #34c759; }
+  &.c3 { background: rgba(90, 200, 250, 0.2); color: #5ac8fa; }
 }
 
 .stat-info {
@@ -704,249 +762,15 @@ onUnmounted(() => {
   font-size: 20px;
   font-weight: 700;
   font-family: 'DIN', 'Arial', sans-serif;
-  color: #333;
+  color: #fff;
 }
 
 .stat-lbl {
   font-size: 12px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-// ===== 中央：KPI 卡片行 =====
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  flex-shrink: 0;
-}
-
-.kpi-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 18px 16px;
-  text-align: center;
-  border: 1px solid rgba(255, 59, 48, 0.1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 59, 48, 0.1);
-    border-color: rgba(255, 59, 48, 0.25);
-  }
-}
-
-.kpi-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 10px;
-  font-size: 20px;
-}
-
-.kpi-num {
-  font-size: 28px;
-  font-weight: 700;
-  font-family: 'DIN', 'Arial', sans-serif;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.kpi-name {
-  font-size: 13px;
-  color: #666;
-  margin-top: 6px;
-}
-
-// ===== 中央：超大核心数字 =====
-.hero-section {
-  flex-shrink: 0;
-  height: 180px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.hero-glow {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 59, 48, 0.12) 0%, rgba(255, 149, 0, 0.06) 40%, transparent 70%);
-  animation: heroGlow 4s ease-in-out infinite alternate;
-}
-
-@keyframes heroGlow {
-  0% { transform: scale(0.9); opacity: 0.7; }
-  100% { transform: scale(1.1); opacity: 1; }
-}
-
-.hero-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 59, 48, 0.15);
-
-  &.ring-outer {
-    width: 280px;
-    height: 280px;
-    animation: ringRotate 20s linear infinite;
-    border-color: rgba(255, 59, 48, 0.12);
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: -4px;
-      left: 50%;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #ff3b30;
-      box-shadow: 0 0 12px rgba(255, 59, 48, 0.6);
-    }
-  }
-
-  &.ring-inner {
-    width: 200px;
-    height: 200px;
-    animation: ringRotate 15s linear infinite reverse;
-    border-color: rgba(255, 149, 0, 0.12);
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 50%;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #ff9500;
-      box-shadow: 0 0 10px rgba(255, 149, 0, 0.6);
-    }
-  }
-}
-
-@keyframes ringRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-}
-
-.hero-value {
-  font-size: 64px;
-  font-weight: 700;
-  font-family: 'DIN', 'Arial', sans-serif;
-  background: linear-gradient(135deg, #ff3b30, #ff9500);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  line-height: 1;
-  letter-spacing: -2px;
-}
-
-.hero-label {
-  font-size: 14px;
-  color: #999;
-  margin-top: 10px;
-  letter-spacing: 2px;
-}
-
-// ===== 中央：地图 =====
-.map-section {
-  flex: 1;
-  min-height: 0;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 59, 48, 0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.map-title-bar {
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ff3b30;
-  border-bottom: 1px solid rgba(255, 59, 48, 0.08);
-  background: linear-gradient(135deg, rgba(255, 59, 48, 0.05), rgba(255, 149, 0, 0.03));
-}
-
-.map-title-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff3b30;
-  box-shadow: 0 0 8px rgba(255, 59, 48, 0.4);
-}
-
-.map-container {
-  flex: 1;
-  min-height: 200px;
-}
-
-.map-preview {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-}
-
-.preview-placeholder {
-  text-align: center;
-  color: #999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.map-legend {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  display: flex;
-  gap: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #666;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  &.online { background: #34c759; box-shadow: 0 0 6px rgba(52, 199, 89, 0.5); }
-  &.offline { background: #8e8e93; }
-  &.fault { background: #ff3b30; box-shadow: 0 0 6px rgba(255, 59, 48, 0.5); }
-}
-
-// ===== 右侧：排行 =====
+// ===== 排行榜 =====
 .rank-list {
   flex: 1;
   overflow-y: auto;
@@ -964,8 +788,8 @@ onUnmounted(() => {
   width: 20px;
   height: 20px;
   border-radius: 4px;
-  background: #f0f0f0;
-  color: #999;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -976,7 +800,7 @@ onUnmounted(() => {
   &.top3 {
     background: linear-gradient(135deg, #ff9500, #ff3b30);
     color: #fff;
-    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
+    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.4);
   }
 }
 
@@ -986,14 +810,14 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 12px;
 }
 
 .rank-bar-wrap {
   flex: 1;
   height: 6px;
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
@@ -1007,12 +831,12 @@ onUnmounted(() => {
 .rank-val {
   width: 50px;
   text-align: right;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
   font-size: 11px;
 }
 
-// ===== 右侧：告警 =====
+// ===== 告警 =====
 .alert-scroll {
   flex: 1;
   overflow-y: auto;
@@ -1023,7 +847,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 7px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 12px;
 
   &:last-child {
@@ -1037,32 +861,32 @@ onUnmounted(() => {
   border-radius: 4px;
   flex-shrink: 0;
   font-weight: 500;
-  &.danger { background: rgba(255, 59, 48, 0.1); color: #ff3b30; }
-  &.warning { background: rgba(255, 149, 0, 0.1); color: #ff9500; }
+  &.danger { background: rgba(255, 59, 48, 0.2); color: #ff3b30; }
+  &.warning { background: rgba(255, 149, 0, 0.2); color: #ff9500; }
 }
 
 .alert-text {
   flex: 1;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .alert-time {
-  color: #ccc;
+  color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
   font-size: 11px;
 }
 
 .empty-hint {
   text-align: center;
-  color: #ccc;
+  color: rgba(255, 255, 255, 0.3);
   padding: 20px 0;
   font-size: 13px;
 }
 
-// ===== 右侧：任务 =====
+// ===== 任务 =====
 .task-list {
   flex: 1;
   overflow-y: auto;
@@ -1073,7 +897,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 7px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 12px;
 
   &:last-child {
@@ -1086,23 +910,57 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  &.p1 { background: #c7c7cc; }
+  &.p1 { background: #8e8e93; }
   &.p2 { background: #ff9500; }
   &.p3 { background: #ff3b30; }
 }
 
 .task-title {
   flex: 1;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .task-date {
-  color: #ccc;
+  color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
   font-size: 11px;
+}
+
+// ===== 地图图例 =====
+.map-legend {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: rgba(10, 22, 40, 0.8);
+  backdrop-filter: blur(12px);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 12px;
+  display: flex;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  &.online { background: #34c759; box-shadow: 0 0 6px rgba(52, 199, 89, 0.6); }
+  &.offline { background: #8e8e93; }
+  &.fault { background: #ff3b30; box-shadow: 0 0 6px rgba(255, 59, 48, 0.6); }
 }
 
 // ===== 地图标记样式 =====
@@ -1113,15 +971,15 @@ onUnmounted(() => {
   padding: 5px 12px 5px 8px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 20px;
-  border: 1px solid rgba(255, 59, 48, 0.3);
+  border: 1px solid rgba(255, 59, 48, 0.4);
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 
   &:hover {
-    background: rgba(255, 59, 48, 0.08);
+    background: #fff;
     border-color: #ff3b30;
-    box-shadow: 0 4px 16px rgba(255, 59, 48, 0.2);
+    box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
   }
 }
 
@@ -1198,10 +1056,10 @@ onUnmounted(() => {
   background: transparent;
 }
 .bigscreen ::-webkit-scrollbar-thumb {
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 59, 48, 0.3);
   border-radius: 2px;
   &:hover {
-    background: rgba(255, 59, 48, 0.4);
+    background: rgba(255, 59, 48, 0.5);
   }
 }
 </style>

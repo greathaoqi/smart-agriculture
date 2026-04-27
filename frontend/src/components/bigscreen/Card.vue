@@ -21,26 +21,26 @@ defineProps({
 
 <style lang="scss" scoped>
 .gov-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
+  background: rgba(10, 22, 40, 0.85);
+  backdrop-filter: blur(16px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 59, 48, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 8px 30px rgba(255, 59, 48, 0.12);
-    border-color: rgba(255, 59, 48, 0.25);
+    box-shadow: 0 8px 32px rgba(255, 59, 48, 0.15);
+    border-color: rgba(255, 59, 48, 0.3);
   }
 }
 
 .card-header {
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(255, 59, 48, 0.08) 0%, rgba(255, 149, 0, 0.05) 100%);
-  border-bottom: 1px solid rgba(255, 59, 48, 0.1);
+  background: linear-gradient(135deg, rgba(255, 59, 48, 0.15) 0%, rgba(255, 149, 0, 0.1) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,7 +49,7 @@ defineProps({
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #ff3b30;
+  color: #ff9500;
   letter-spacing: 1px;
   position: relative;
   padding-left: 10px;
