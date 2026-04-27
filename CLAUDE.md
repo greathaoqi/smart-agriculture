@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-智慧农业管理平台 (Smart Agriculture Management Platform) - A full-stack Vue 3 + Node.js + MySQL application for managing agricultural operations including farms, devices, planting, inventory, and sales.
+云上丽水农业乡村 (Yunshang Lishui Agriculture) - A full-stack Vue 3 + Node.js + MySQL application for managing agricultural operations including farms, devices, planting, inventory, sales, weather monitoring, greenhouse management, and IoT device control.
 
 ## Development Commands
 
@@ -17,8 +17,11 @@ docker run -d --name sa-mysql -p 12330:3306 \
   -e MYSQL_DATABASE=smart_agriculture \
   mysql:8.0 --default-authentication-plugin=mysql_native_password
 
-# Initialize database
+# Initialize database (base schema)
 docker exec -i sa-mysql mysql -uroot -proot123 smart_agriculture < database/init.sql
+
+# Run database extensions (device_types, greenhouses, alert_rules, alert_messages)
+docker exec -i sa-mysql mysql -uroot -proot123 smart_agriculture < database/extend.sql
 
 # Backend (from backend/)
 npm install
@@ -36,35 +39,39 @@ npm run build        # Production build
 ```bash
 docker-compose up -d
 docker-compose down
+
+# Deploy to production server
+ssh opc@138.2.81.121 "cd ~/smart-agriculture && git pull && docker-compose up -d --build"
 ```
 
 ## Architecture
 
 ### Frontend (Vue 3)
 - **Entry:** `frontend/src/main.js`
-- **Router:** `frontend/src/router/index.js` - Vue Router with auth guards
+- **Router:** `frontend/src/router/index.js` - Vue Router with auth guards, routes organized by module
 - **State:** Pinia stores in `frontend/src/stores/`
-- **API Layer:** `frontend/src/api/` - Axios wrappers for backend endpoints
-- **Layout:** `frontend/src/layouts/MainLayout.vue` - Sidebar + header + content structure
+- **API Layer:** `frontend/src/api/` - Axios wrappers matching backend endpoints
+- **Layout:** `frontend/src/layouts/MainLayout.vue` - Sidebar + header + content
 - **Request Handling:** `frontend/src/utils/request.js` - Axios interceptors for JWT injection and 401 handling
+- **Big Screen:** `frontend/src/views/BigScreen.vue` - Full-screen data visualization with Leaflet map
 
-Dev server proxies `/api` to backend. Production build uses nginx to proxy API requests.
+Dev server proxies `/api` to backend. Production uses nginx to proxy API requests.
 
 ### Backend (Node.js + Express)
-- **Entry:** `backend/src/app.js`
-- **Routes:** `backend/src/routes/` - Express routers
-- **Controllers:** `backend/src/controllers/` - Business logic
-- **Models:** `backend/src/models/` - Sequelize ORM (17 models)
+- **Entry:** `backend/src/app.js` - Registers all routes
+- **Routes:** `backend/src/routes/` - Express routers (auth, user, farm, device, deviceType, greenhouse, weather, alert, etc.)
+- **Controllers:** `backend/src/controllers/` - Business logic per module
+- **Models:** `backend/src/models/` - Sequelize ORM (22 models)
 - **Auth:** `backend/src/middlewares/auth.js` - JWT verification, permission/role checks
 
-User model uses bcrypt hooks for password hashing. Models sync with DB on startup; admin account auto-created if missing.
+Models sync with DB on startup; admin account auto-created if missing.
 
 ### Database (MySQL)
-- **Port:** 12330 (mapped from container 3306)
-- **Schema:** `database/init.sql` contains full DDL + seed data
+- **Schema:** `database/init.sql` - Base DDL + seed data
+- **Extensions:** `database/extend.sql` - Device types, greenhouses, alert tables (run after init.sql)
 - **ORM:** Sequelize with associations defined in `backend/src/models/index.js`
 
-Key tables: `users`, `roles`, `farms`, `plots`, `devices`, `planting_plans`, `inventory`, `orders`
+Key tables: `users`, `roles`, `farms`, `plots`, `devices`, `device_types`, `greenhouses`, `planting_plans`, `inventory`, `orders`, `alert_rules`, `alert_messages`
 
 ## Key Patterns
 
@@ -76,13 +83,18 @@ Key tables: `users`, `roles`, `farms`, `plots`, `devices`, `planting_plans`, `in
 5. Backend `auth` middleware verifies JWT and attaches user to `req.user`
 
 ### Adding New Features
-- **Backend:** Create model → Create controller → Create route → Register in `app.js`
-- **Frontend:** Create view in `views/` → Add route in `router/index.js` → Create API functions in `api/`
+- **Backend:** Create model in `models/` → Create controller in `controllers/` → Create route in `routes/` → Register in `app.js` → Add associations in `models/index.js`
+- **Frontend:** Create view in `views/<module>/` → Add route in `router/index.js` → Create API functions in `api/<module>.js`
 
 ### Permission System
 - Roles have `permissions` JSON array (e.g., `["farm:*", "user:view"]`)
 - Admin role has `["*"]` for full access
 - Use `checkPermission()` middleware for role-based route protection
+
+### Big Screen Map (Leaflet)
+- Uses CartoDB dark tile layer (no API key required)
+- Farm markers show name labels, device markers show status dots
+- Default center: Lishui, Zhejiang (28.46, 119.92)
 
 ## Environment Variables
 
@@ -107,3 +119,11 @@ VITE_API_BASE_URL=/api
 
 - Username: `admin`
 - Password: `admin123`
+
+## Production Deployment
+
+- **Server:** `opc@138.2.81.121`
+- **Project directory:** `/home/opc/smart-agriculture`
+- **Access URL:** https://arm.ajiu.lol:12350
+- **Repository:** https://github.com/greathaoqi/smart-agriculture.git
+- **Branch:** main
