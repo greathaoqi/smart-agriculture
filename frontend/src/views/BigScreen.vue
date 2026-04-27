@@ -45,7 +45,72 @@
         <div class="bs-panel-box flex1 map-box">
           <div class="panel-title">农场分布地图</div>
           <div ref="mapContainer" class="map-container" v-show="!mapError"></div>
-          <div class="map-error" v-if="mapError">{{ mapError }}</div>
+          <!-- 预览图 - 科技感节点分布 -->
+          <div class="map-preview" v-if="mapError">
+            <svg class="preview-bg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+              <!-- 网格线 -->
+              <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(54,215,183,0.08)" stroke-width="0.5"/>
+                </pattern>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)"/>
+              <!-- 连接线 -->
+              <g stroke="rgba(54,215,183,0.3)" stroke-width="1" fill="none">
+                <path d="M80,80 Q150,100 200,120" opacity="0.6"/>
+                <path d="M200,120 L280,90" opacity="0.5"/>
+                <path d="M200,120 L160,180" opacity="0.5"/>
+                <path d="M280,90 L320,150" opacity="0.4"/>
+                <path d="M160,180 L100,200" opacity="0.4"/>
+                <path d="M200,120 L300,200" opacity="0.3"/>
+              </g>
+            </svg>
+            <!-- 节点 -->
+            <div class="preview-node n1 pulse">
+              <div class="node-ring"></div>
+              <div class="node-core"></div>
+              <span class="node-label">智慧农业示范基地</span>
+            </div>
+            <div class="preview-node n2 pulse">
+              <div class="node-ring"></div>
+              <div class="node-core"></div>
+              <span class="node-label">阳光农场</span>
+            </div>
+            <div class="preview-node n3">
+              <div class="node-ring offline"></div>
+              <div class="node-core offline"></div>
+              <span class="node-label">绿色生态农场</span>
+            </div>
+            <div class="preview-node n4 pulse">
+              <div class="node-ring"></div>
+              <div class="node-core"></div>
+              <span class="node-label">有机农场</span>
+            </div>
+            <div class="preview-node n5 pulse">
+              <div class="node-ring"></div>
+              <div class="node-core"></div>
+              <span class="node-label">科技示范园</span>
+            </div>
+            <div class="preview-node n6">
+              <div class="node-ring fault"></div>
+              <div class="node-core fault"></div>
+              <span class="node-label">蔬菜基地</span>
+            </div>
+            <!-- 提示信息 -->
+            <div class="preview-hint">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              </svg>
+              <span>{{ mapError }}</span>
+            </div>
+          </div>
           <div class="map-legend">
             <span class="legend-item"><i class="legend-dot online"></i>在线</span>
             <span class="legend-item"><i class="legend-dot offline"></i>离线</span>
@@ -664,38 +729,126 @@ onUnmounted(() => {
   background: linear-gradient(180deg, rgba(13,33,55,0.6), rgba(10,22,40,0.8));
   border: 1px solid rgba(54,215,183,0.15);
   overflow: hidden;
-  // 地图未加载时显示占位图案
-  &::before {
-    content: '';
+}
+
+// 地图预览图 - 科技感节点分布
+.map-preview {
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(10,25,45,0.9), rgba(5,15,35,0.95));
+  border: 1px solid rgba(54,215,183,0.15);
+  overflow: hidden;
+
+  .preview-bg {
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(circle at 30% 40%, rgba(54,215,183,0.08) 0%, transparent 50%),
-      radial-gradient(circle at 70% 60%, rgba(93,173,226,0.06) 0%, transparent 40%),
-      radial-gradient(circle at 50% 50%, rgba(54,215,183,0.04) 0%, transparent 60%);
-    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .preview-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+
+    &.n1 { left: 20%; top: 25%; }
+    &.n2 { left: 50%; top: 35%; }
+    &.n3 { left: 70%; top: 28%; }
+    &.n4 { left: 40%; top: 55%; }
+    &.n5 { left: 75%; top: 48%; }
+    &.n6 { left: 25%; top: 62%; }
+
+    &.pulse .node-ring {
+      animation: nodePulse 2s ease-out infinite;
+    }
+  }
+
+  .node-ring {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid rgba(54,215,183,0.4);
+    position: relative;
+
+    &.offline {
+      border-color: rgba(127,140,141,0.4);
+    }
+    &.fault {
+      border-color: rgba(231,76,60,0.4);
+    }
+  }
+
+  .node-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #36d7b7;
+    box-shadow: 0 0 10px #36d7b7, 0 0 20px rgba(54,215,183,0.5);
+
+    &.offline {
+      background: #7f8c8d;
+      box-shadow: 0 0 8px #7f8c8d;
+    }
+    &.fault {
+      background: #e74c3c;
+      box-shadow: 0 0 10px #e74c3c, 0 0 20px rgba(231,76,60,0.5);
+    }
+  }
+
+  .node-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    background: rgba(10,25,45,0.7);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(54,215,183,0.2);
+  }
+
+  .preview-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(10,25,45,0.8);
+    border-radius: 20px;
+    border: 1px solid rgba(54,215,183,0.3);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    z-index: 3;
+
+    svg {
+      color: #36d7b7;
+    }
   }
 }
-.map-error {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: rgba(255,255,255,0.4);
-  font-size: 13px;
-  text-align: center;
-  padding: 30px;
-  background: linear-gradient(180deg, rgba(13,33,55,0.6), rgba(10,22,40,0.8));
-  border-radius: 4px;
-  &::before {
-    content: '';
-    width: 60px;
-    height: 60px;
-    background: radial-gradient(circle, rgba(54,215,183,0.15) 0%, transparent 70%);
-    border: 1px dashed rgba(54,215,183,0.3);
-    border-radius: 50%;
+
+@keyframes nodePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(54,215,183,0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(54,215,183,0);
+    transform: scale(1.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(54,215,183,0);
+    transform: scale(1);
   }
 }
 .map-legend {
